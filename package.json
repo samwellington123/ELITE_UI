@@ -1,0 +1,27 @@
+{
+    "name": "pandadoc-invoice-system",
+    "version": "1.0.0",
+    "description": "Automated invoice and quote generation with PandaDoc",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js"
+    },
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.872.0",
+        "@aws-sdk/s3-request-presigner": "^3.872.0",
+        "axios": "^1.11.0",
+        "cors": "^2.8.5",
+        "dotenv": "^16.6.1",
+        "express": "^4.21.2",
+        "pg": "^8.11.3",
+        "multer": "^2.0.2",
+        "pandadoc-invoice-system": "file:",
+        "sharp": "^0.34.3",
+        "stripe": "^18.4.0",
+        "xml2js": "^0.6.2"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1"
+    }
+}

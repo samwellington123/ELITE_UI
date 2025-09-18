@@ -1,0 +1,20 @@
+{
+  "version": "v24.2",
+  "family": "web-services",
+  "source_pdf": "SanMar-Web-Services-Integration-Guide-24.2.pdf",
+  "generated": "2025-09-08",
+  "cards": [
+    "index.md",
+    "onboarding.md",
+    "authentication.md",
+    "errors.md",
+    "best-practices.md",
+    "services/standard/product-info.md",
+    "services/standard/inventory.md",
+    "services/standard/pricing.md",
+    "services/promostandards/product-data.md",
+    "services/promostandards/media.md",
+    "services/promostandards/inventory.md",
+    "services/promostandards/pricing.md"
+  ]
+}

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calibrator</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 20px; }
+    .row { display: flex; gap: 16px; align-items: center; margin-bottom: 10px; }
+    #canvas { border: 1px solid #ccc; max-width: 100%; cursor: crosshair; }
+    .note { color: #666; font-size: 12px; }
+    label { min-width: 120px; display: inline-block; }
+    input[type="text"], input[type="number"] { padding: 6px; width: 280px; }
+    button { padding: 8px 12px; }
+    #specFrame { width: 100%; height: 480px; border: 1px solid #e3e3e3; margin-top: 10px; }
+    .split { display: flex; gap: 24px; align-items: flex-start; }
+    .panel { flex: 1; background: #fafafa; border: 1px solid #ddd; border-radius: 8px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    .panel h3 { margin: 0 0 8px 0; font-size: 16px; font-weight: 600; }
+  </style>
+  <script>
+    let points = [];
+    let img = new Image();
+    let sequence = { styleId: '', views: [], idx: -1, loaded: false };
+
+    function draw() {
+      const c = document.getElementById('canvas');
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0,0,c.width,c.height);
+      if (img.src && img.complete) ctx.drawImage(img, 0, 0, c.width, c.height);
+      if (points.length) {
+        ctx.fillStyle = '#ff3333';
+        ctx.strokeStyle = '#ff3333';
+        ctx.lineWidth = 2;
+        for (const p of points) ctx.fillRect(p.x-3, p.y-3, 6, 6);
+        if (points.length === 2) {
+          ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y); ctx.lineTo(points[1].x, points[1].y); ctx.stroke();
+        }
+      }
+    }
+
+    function inferViewFromKey(key) {
+      const s = String(key || '').toLowerCase();
+      if (/front/.test(s)) return 'front';
+      if (/back/.test(s)) return 'back';
+      if (/left/.test(s)) return 'left';
+      if (/right/.test(s)) return 'right';
+      if (/product/.test(s)) return 'product';
+      if (/color/.test(s)) return 'color';
+      return '';
+    }
+
+    async function loadSequence(styleId) {
+      // Build available views from S3, then drop ones already calibrated
+      const prefOrder = ['front','back','left','right','product','color'];
+      const have = new Set();
+      try {
+        const s3r = await fetch(`/api/admin/calibrate/images/${encodeURIComponent(styleId)}`);
+        const s3d = await s3r.json();
+        for (const it of (s3d.items || [])) {
+          const v = inferViewFromKey(it.key || it.file || '');
+          if (v) have.add(v);
+        }
+      } catch (_) {}
+      const views = prefOrder.filter(v => have.has(v));
+      // Remove already calibrated views
+      try {
+        const r = await fetch(`/api/admin/scales/${encodeURIComponent(styleId)}`);
+        if (r.ok) {
+          const j = await r.json();
+          const done = new Set(Object.keys(j?.data?.views || {}));
+          for (let i = views.length - 1; i >= 0; i--) {
+            if (done.has(views[i])) views.splice(i, 1);
+          }
+        }
+      } catch (_) {}
+      sequence = { styleId, views, idx: -1, loaded: true };
+    }
+
+    async function chooseImage(preferredView = '') {
+      const styleId = document.getElementById('styleId').value.trim();
+      if (!styleId) { alert('Enter styleId first'); return; }
+
+      // Initialize sequence once per style
+      if (!sequence.loaded || sequence.styleId !== styleId) {
+        await loadSequence(styleId);
+      }
+
+      let desired = preferredView || document.getElementById('view').value.trim();
+      if (!desired) {
+        // pick next in sequence or default to front/back/any
+        if (sequence.views.length) {
+          desired = sequence.views[Math.max(0, Math.min(sequence.idx, sequence.views.length - 1))] || sequence.views[0];
+        } else {
+          desired = 'front';
+        }
+      }
+
+      let url = '';
+      try {
+        const s3r = await fetch(`/api/admin/calibrate/images/${encodeURIComponent(styleId)}`);
+        const s3d = await s3r.json();
+        if (s3r.ok && s3d.ok && Array.isArray(s3d.items) && s3d.items.length) {
+          const pick = (name)=> s3d.items.find(i=> new RegExp(`[\\/_]${name}[\\._]`,'i').test(i.key || i.file || ''));
+          url = (pick(desired)?.url) || (pick('front')?.url) || (pick('back')?.url) || s3d.items[0].url;
+        }
+      } catch (_) {}
+      if (!url) {
+        const resp = await fetch(`/api/admin/sanmar/images/${encodeURIComponent(styleId)}`);
+        const data = await resp.json();
+        if (!resp.ok || !data.ok || !Array.isArray(data.items) || !data.items.length) { alert('No images found; import first.'); return; }
+        url = `${data.items[0].url}`;
+      }
+      document.getElementById('imageUrl').value = url;
+      if (desired) document.getElementById('view').value = desired;
+
+      const c = document.getElementById('canvas');
+      img = new Image();
+      img.onload = function() {
+        c.width = img.width;
+        c.height = img.height;
+        points = [];
+        document.getElementById('distPx').textContent = '0';
+        draw();
+      };
+      img.onerror = function() { alert('Failed to load image'); };
+      img.src = url;
+
+      try {
+        const specResp = await fetch(`/api/admin/sanmar/spec/${encodeURIComponent(styleId)}`);
+        const specData = await specResp.json();
+        if (specResp.ok && specData.ok && Array.isArray(specData.urls) && specData.urls.length) {
+          const frame = document.getElementById('specFrame');
+          frame.src = specData.urls[0];
+          const link = document.getElementById('specLink');
+          link.textContent = 'Open Spec Sheet';
+          link.href = specData.urls[0];
+        }
+      } catch (_) {}
+    }
+
+    function onCanvasClick(ev) {
+      const c = document.getElementById('canvas');
+      const rect = c.getBoundingClientRect();
+      // Map CSS pixels to canvas coordinate space to avoid offset/scaling errors
+      const scaleX = c.width / rect.width;
+      const scaleY = c.height / rect.height;
+      const x = Math.round((ev.clientX - rect.left) * scaleX);
+      const y = Math.round((ev.clientY - rect.top) * scaleY);
+      if (points.length >= 2) points = [];
+      points.push({ x, y });
+      draw();
+      if (points.length === 2) {
+        const dx = points[1].x - points[0].x;
+        const dy = points[1].y - points[0].y;
+        const distPx = Math.sqrt(dx*dx + dy*dy);
+        document.getElementById('distPx').textContent = Math.round(distPx);
+      }
+    }
+
+    async function saveScale() {
+      const styleId = document.getElementById('styleId').value.trim();
+      const view = document.getElementById('view').value.trim();
+      const inches = Number(document.getElementById('inches').value);
+      if (!styleId || !inches || points.length !== 2) { alert('Provide styleId, two points, and inches.'); return; }
+      const dx = points[1].x - points[0].x;
+      const dy = points[1].y - points[0].y;
+      const distPx = Math.sqrt(dx*dx + dy*dy);
+      const pxPerIn = distPx / inches;
+      const body = view ? { view, pxPerIn } : { defaultPxPerIn: pxPerIn };
+      const resp = await fetch(`/api/admin/scales/${encodeURIComponent(styleId)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) { alert('Save failed: ' + (data.error || resp.status)); return; }
+      document.getElementById('result').textContent = 'Saved: ' + JSON.stringify(body) + ' → S3 ' + data.key;
+
+      // Advance to next view in sequence
+      await nextView();
+    }
+
+    async function ensureSequence(styleId) {
+      if (!sequence.loaded || sequence.styleId !== styleId) {
+        await loadSequence(styleId);
+      }
+    }
+
+    async function nextView() {
+      const styleId = document.getElementById('styleId').value.trim();
+      await ensureSequence(styleId);
+      if (!sequence.views.length) { alert('All available views calibrated or none detected.'); return; }
+      // Remove current view from remaining list
+      const cur = document.getElementById('view').value.trim();
+      if (cur) {
+        const i = sequence.views.indexOf(cur);
+        if (i >= 0) sequence.views.splice(i, 1);
+      }
+      if (!sequence.views.length) { alert('Done with all detected views.'); return; }
+      sequence.idx = 0;
+      const next = sequence.views[sequence.idx];
+      document.getElementById('view').value = next;
+      await chooseImage(next);
+    }
+
+    async function skipView() {
+      // Just move to the next view without saving
+      await nextView();
+    }
+  </script>
+  </head>
+  <body>
+    <h2>Per-View Calibrator</h2>
+    <div class="row"><label>Style ID</label><input id="styleId" placeholder="e.g. ST350" /></div>
+    <div class="row"><label>View (optional)</label><input id="view" placeholder="front | back | side" /></div>
+    <div class="row"><label>Image URL</label><input id="imageUrl" placeholder="auto-selects first imported image" /> <button onclick="chooseImage()">Auto-Select</button></div>
+    <div class="row"><label>Known inches</label><input id="inches" type="number" min="0" step="0.01" placeholder="e.g. body length 30" /> <span class="note">Click two points spanning a known measurement.</span></div>
+    <div class="row"><label>Distance (px)</label><span id="distPx">0</span></div>
+    <div class="row"><button onclick="saveScale()">Save Scale</button> <button onclick="skipView()">Skip View</button></div>
+    <div class="split">
+      <div class="panel">
+        <h3>Flat Image</h3>
+        <canvas id="canvas" onclick="onCanvasClick(event)"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Spec Sheet + Measurements</h3>
+        <a id="specLink" class="note" href="#" target="_blank" rel="noopener noreferrer"></a>
+        <iframe id="specFrame"></iframe>
+      </div>
+    </div>
+    <p id="result" class="note"></p>
+  </body>
+</html>

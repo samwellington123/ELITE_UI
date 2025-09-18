@@ -1,0 +1,30 @@
+{
+  "version": "v23.3",
+  "source_pdf": "SanMar-FTP-Integration-Guide-v23.3.pdf",
+  "generated": "2025-09-08",
+  "files": [
+    "index.md",
+    "onboarding/overview.md",
+    "policies/overview.md",
+    "data-library/overview.md",
+    "ftp/connection.md",
+    "product-data/overview.md",
+    "product-data/sdl-fields.md",
+    "product-data/epdd-fields.md",
+    "product-data/pdd-catalog.md",
+    "inventory-pricing/overview.md",
+    "inventory-pricing/dip-fields.md",
+    "inventory-pricing/saleitems-fields.md",
+    "shopify/overview.md",
+    "shopify/fields.md",
+    "pricing-special/overview.md",
+    "pricing-special/fields.md",
+    "asn/overview.md",
+    "asn/fields.md",
+    "invoices/overview.md",
+    "invoices/invoice-text.md",
+    "invoices/invoice-excel.md",
+    "invoices/edi-810.md",
+    "meta/changelog.md"
+  ]
+}

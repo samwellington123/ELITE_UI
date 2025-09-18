@@ -1,0 +1,9 @@
+[
+  { "method": "screen",     "qtyMin": 1,  "qtyMax": 23,  "colors": 1, "costPerPiece": 2.00, "setupFee": 25 },
+  { "method": "screen",     "qtyMin": 24, "qtyMax": 71,  "colors": 1, "costPerPiece": 1.50, "setupFee": 25 },
+  { "method": "screen",     "qtyMin": 1,  "qtyMax": 143, "colors": 2, "costPerPiece": 2.80, "setupFee": 40 },
+  { "method": "embroidery", "qtyMin": 1,  "qtyMax": 23,  "stitchMax": 8000, "costPerPiece": 7.50, "setupFee": 0 },
+  { "method": "embroidery", "qtyMin": 24, "qtyMax": 71,  "stitchMax": 8000, "costPerPiece": 6.50, "setupFee": 0 },
+  { "method": "dtf",        "qtyMin": 1,  "qtyMax": 23,  "colors": 1, "costPerPiece": 3.25, "setupFee": 0 }
+]
+
