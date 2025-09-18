@@ -1,0 +1,22 @@
+[
+  {
+    "id": "PROD001",
+    "sku": "TSHIRT-18500-BLACK",
+    "name": "Premium T-Shirt - Black",
+    "brand": "Gildan",
+    "category": "apparel",
+    "description": "Premium cotton t-shirt with custom logo",
+    "baseImageUrl": "/images/products/18500_Black_Flat_Front-01_big_back.png",
+    "pricing": [
+      {"minQty":1,"maxQty":9,"price":29.99},
+      {"minQty":10,"maxQty":49,"price":26.99},
+      {"minQty":50,"maxQty":99,"price":23.99},
+      {"minQty":100,"maxQty":null,"price":19.99}
+    ],
+    "views": ["front","back","left","right"],
+    "specSheetUrl": null,
+    "calibrated": false
+  }
+]
+
+

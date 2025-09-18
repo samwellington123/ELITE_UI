@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Product",
+  "type": "object",
+  "required": ["id", "sku", "name", "category", "pricing"],
+  "properties": {
+    "id": { "type": "string" },
+    "sku": { "type": "string" },
+    "name": { "type": "string" },
+    "brand": { "type": "string" },
+    "category": { "type": "string" },
+    "description": { "type": "string" },
+    "baseImageUrl": { "type": "string" },
+    "pricing": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/PricingTier" },
+      "minItems": 1
+    },
+    "views": { "type": "array", "items": { "type": "string" } },
+    "specSheetUrl": { "type": ["string", "null"] },
+    "calibrated": { "type": ["boolean", "null"] }
+  },
+  "definitions": {
+    "PricingTier": {
+      "type": "object",
+      "required": ["minQty", "price"],
+      "properties": {
+        "minQty": { "type": "integer", "minimum": 1 },
+        "maxQty": { "type": ["integer", "null"], "minimum": 1 },
+        "price": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}
+
+
